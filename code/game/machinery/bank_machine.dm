@@ -92,7 +92,7 @@
 	. = ..()
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, "BankMachine", name)
+		ui = new(user, src, "BankMachineNova", name) // NOVA EDIT CHANGE - ORIGINAL: ui = new(user, src, "BankMachine", name)
 		ui.open()
 
 /obj/machinery/computer/bank_machine/ui_data(mob/user)
