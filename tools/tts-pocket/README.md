@@ -65,6 +65,7 @@ Keep `Man` or `Woman` in display names when you want the game's random gender ma
 - `POCKETTTS_LANGUAGE`: PocketTTS model language, default `english`.
 - `POCKETTTS_QUANTIZE`: set `1` to load the model with int8 quantization; Docker defaults to `1` for lower CPU latency.
 - `POCKETTTS_ENABLE_PITCH`: set `1` to expose `/pitch-available` and apply semitone pitch shifting with ffmpeg.
+- `POCKETTTS_PLAYBACK_TAIL_SECONDS`: silence appended to every response, default `0.5`. This prevents the game from cutting off final phonemes when it stops the audio channel at the reported duration.
 - `POCKETTTS_PRELOAD_MODEL`: set `1` to load the model at boot instead of on first speech.
 - `POCKETTTS_PRELOAD_VOICES`: set `1` to load every voice state at boot.
 - `POCKETTTS_BACKGROUND_WARMUP`: set `0` to disable background model warmup.

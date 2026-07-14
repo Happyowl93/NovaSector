@@ -76,6 +76,7 @@ MODEL_QUANTIZE = os.getenv("POCKETTTS_QUANTIZE", "0").strip().lower() in {"1", "
 
 MAX_TEXT_CHARS = int(os.getenv("POCKETTTS_MAX_TEXT_CHARS", "300"))
 OGG_BITRATE = os.getenv("POCKETTTS_OGG_BITRATE", "64k")
+PLAYBACK_TAIL_SECONDS = max(0.0, float(os.getenv("POCKETTTS_PLAYBACK_TAIL_SECONDS", "0.5")))
 ENABLE_PITCH = os.getenv("POCKETTTS_ENABLE_PITCH", "0").strip().lower() in {"1", "true", "yes", "on"}
 PRELOAD_MODEL = os.getenv("POCKETTTS_PRELOAD_MODEL", "0").strip().lower() in {"1", "true", "yes", "on"}
 PRELOAD_VOICES = os.getenv("POCKETTTS_PRELOAD_VOICES", "0").strip().lower() in {"1", "true", "yes", "on"}
@@ -542,11 +543,18 @@ def wav_to_ogg(
         if corruption_spans:
             voice = apply_corruption_bursts(voice, corruption_spans)
         combined = apply_radio_clicks(voice)
+        if PLAYBACK_TAIL_SECONDS:
+            combined += AudioSegment.silent(
+                duration=round(PLAYBACK_TAIL_SECONDS * 1000),
+                frame_rate=combined.frame_rate,
+            )
         output = io.BytesIO()
         combined.export(output, format="ogg", codec="libvorbis", bitrate=OGG_BITRATE)
         return output.getvalue(), len(combined) / 1000.0
 
     # Non-radio: a single ffmpeg call straight to ogg.
+    if PLAYBACK_TAIL_SECONDS:
+        filters.append(f"apad=pad_dur={PLAYBACK_TAIL_SECONDS:.3f}")
     if is_silicon:
         ogg_bytes = _run_silicon(wav_bytes, filters, ogg_out)
     else:
@@ -558,9 +566,9 @@ def wav_to_ogg(
         duration = audio_duration_seconds(ogg_bytes)
     else:
         # Pitch-only rubberband and the per-voice EQ/dynamics filters all preserve
-        # sample count, so the pre-filter WAV's duration is still accurate - skips
-        # spawning a second ffmpeg process just to decode the ogg back out.
-        duration = wav_duration_seconds(wav_bytes)
+        # sample count. The playback tail is the only length-changing filter, so we
+        # can avoid spawning a second ffmpeg process just to decode the OGG back out.
+        duration = wav_duration_seconds(wav_bytes) + PLAYBACK_TAIL_SECONDS
     return ogg_bytes, duration
 
 
