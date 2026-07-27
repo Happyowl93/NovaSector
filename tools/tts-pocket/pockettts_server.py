@@ -117,7 +117,8 @@ SILICON_COMPLEX_TAIL = (
     "[mix_1] asplit=2 [mix_1_1] [mix_1_2]; [mix_1_1] [2] afir=dry=1:wet=1 [reverb_2]; "
     "[mix_1_2] [reverb_2] amix=inputs=2:weights=10 1 [mix_2]; "
     "[mix_2] equalizer=f=7710:t=q:w=0.6:g=-6,equalizer=f=33:t=q:w=0.44:g=-10 [out]; "
-    "[out] alimiter=level_in=1:level_out=1:limit=0.5:attack=5:release=20:level=disabled"
+    "[out] alimiter=level_in=1:level_out=1:limit=0.5:attack=5:release=20:level=disabled,"
+    "aformat=sample_fmts=s16:sample_rates=44100:channel_layouts=mono"
 )
 
 app = Flask(__name__)
