@@ -108,8 +108,11 @@ GIBBERISH_STATIC_GAIN_DB = -6.0
 RADIO_VOICE_FILTERS = ["highpass=f=300", "lowpass=f=3000", "asoftclip=type=tanh"]
 
 
+SILICON_REVERB_TAIL_SECONDS = 2.0
+
 SILICON_COMPLEX_TAIL = (
-    "aresample=44100 [re_1]; [re_1] apad=pad_dur=2 [in_1]; [in_1] asplit=2 [in_1_1] [in_1_2]; "
+    f"aresample=44100 [re_1]; [re_1] apad=pad_dur={SILICON_REVERB_TAIL_SECONDS:g} [in_1]; "
+    "[in_1] asplit=2 [in_1_1] [in_1_2]; "
     "[in_1_1] [1] afir=dry=10:wet=10 [reverb_1]; [in_1_2] [reverb_1] amix=inputs=2:weights=8 1 [mix_1]; "
     "[mix_1] asplit=2 [mix_1_1] [mix_1_2]; [mix_1_1] [2] afir=dry=1:wet=1 [reverb_2]; "
     "[mix_1_2] [reverb_2] amix=inputs=2:weights=10 1 [mix_2]; "
@@ -561,9 +564,13 @@ def wav_to_ogg(
         ogg_bytes = _run_ffmpeg(wav_bytes, filters, ogg_out)
 
     if is_silicon:
-        # Silicon pads a reverb tail onto the end (apad=pad_dur=2 in
-        # SILICON_COMPLEX_TAIL), so duration has to come from the actual output.
-        duration = audio_duration_seconds(ogg_bytes)
+        # Silicon pads a reverb tail onto the end (apad in SILICON_COMPLEX_TAIL), so
+        # prefer the real output length. A decode failure must NOT report 0 - the game
+        # kills the sound channel at the reported duration, which silences the line.
+        fallback = (
+            wav_duration_seconds(wav_bytes) + SILICON_REVERB_TAIL_SECONDS + PLAYBACK_TAIL_SECONDS
+        )
+        duration = audio_duration_seconds(ogg_bytes, fallback)
     else:
         # Pitch-only rubberband and the per-voice EQ/dynamics filters all preserve
         # sample count. The playback tail is the only length-changing filter, so we
@@ -572,12 +579,13 @@ def wav_to_ogg(
     return ogg_bytes, duration
 
 
-def audio_duration_seconds(ogg_bytes: bytes) -> float:
+def audio_duration_seconds(ogg_bytes: bytes, fallback: float = 0.0) -> float:
     try:
         audio = AudioSegment.from_file(io.BytesIO(ogg_bytes), format="ogg")
-        return audio.duration_seconds
-    except Exception:
-        return 0.0
+    except Exception as error:
+        app.logger.error("Failed to decode OGG for duration: %s", error)
+        return fallback
+    return audio.duration_seconds or fallback
 
 
 def wav_duration_seconds(wav_bytes: bytes) -> float:
