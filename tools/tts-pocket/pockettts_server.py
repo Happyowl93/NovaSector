@@ -108,7 +108,7 @@ GIBBERISH_STATIC_GAIN_DB = -6.0
 RADIO_VOICE_FILTERS = ["highpass=f=300", "lowpass=f=3000", "asoftclip=type=tanh"]
 
 
-SILICON_REVERB_TAIL_SECONDS = 2.0
+SILICON_REVERB_TAIL_SECONDS = 0.5
 
 SILICON_COMPLEX_TAIL = (
     f"aresample=44100 [re_1]; [re_1] apad=pad_dur={SILICON_REVERB_TAIL_SECONDS:g} [in_1]; "
